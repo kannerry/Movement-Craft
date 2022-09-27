@@ -72,6 +72,17 @@ public final class MovementCraft extends JavaPlugin implements Listener {
         player.setVelocity(moveInDirection);
     }
 
+    private Block[] getAdjacentBlocks(Player player){
+        // get blocks around player
+        Block[] b = {
+                player.getLocation().getBlock().getRelative(BlockFace.NORTH),
+                player.getLocation().getBlock().getRelative(BlockFace.EAST),
+                player.getLocation().getBlock().getRelative(BlockFace.SOUTH),
+                player.getLocation().getBlock().getRelative(BlockFace.WEST),
+        };
+        return b;
+    }
+
     @Override
     public void onEnable() {
         super.onEnable();
@@ -119,17 +130,13 @@ public final class MovementCraft extends JavaPlugin implements Listener {
             event.setCancelled(true);
 
             // get blocks around player
-            Block[] cardinalBlocks =
-            {
-                    player.getLocation().getBlock().getRelative(BlockFace.NORTH),
-                    player.getLocation().getBlock().getRelative(BlockFace.EAST),
-                    player.getLocation().getBlock().getRelative(BlockFace.SOUTH),
-                    player.getLocation().getBlock().getRelative(BlockFace.WEST),
-            };
-
+            Block[] cardinalBlocks = getAdjacentBlocks(player);
             for(Block block : cardinalBlocks){
                 Location blockLocation = block.getLocation();
+                // if the block is solid, and we have tried to fly:
+                // essentially "pressing space twice", a double jump if you will
                 if(block.getType().isSolid()){
+                    // try a double jump on the block we are adjacent to
                     runWallJumpFor(player, blockLocation);
                     return;
                 }
@@ -146,26 +153,17 @@ public final class MovementCraft extends JavaPlugin implements Listener {
         Block b = player.getLocation().getBlock().getRelative(BlockFace.DOWN);
 
         // get the blocks around our player, and set a boolean if there is one!
-        Block[] cardinalBlocks =
-                {
-                        player.getLocation().getBlock().getRelative(BlockFace.NORTH),
-                        player.getLocation().getBlock().getRelative(BlockFace.EAST),
-                        player.getLocation().getBlock().getRelative(BlockFace.SOUTH),
-                        player.getLocation().getBlock().getRelative(BlockFace.WEST),
-                };
-
+        Block[] cardinalBlocks = getAdjacentBlocks(player);
         for(Block block : cardinalBlocks){
-            if(block.getType().isSolid() && !player.getScoreboardTags().contains("isLongJumping")){
-                player.addScoreboardTag("hasAdjacentBlock");
-                break;
+            // when we move, check if we are sneaking, if we are on the ground and if we aren't in any state.
+            if(block.getType().isSolid() && player.isSneaking()
+            && !player.getScoreboardTags().contains("isLongJumping")
+            && !player.getScoreboardTags().contains("isBackFlipping"))
+            {
+                    PotionEffect SLOW_FALLING = new PotionEffect(PotionEffectType.SLOW_FALLING, 5, 2);
+                    player.addPotionEffect(SLOW_FALLING);
+                    break;
             }
-            player.removeScoreboardTag("hasAdjacentBlock");
-        }
-
-        // If we have a block adjacent and we are sneaking, we should slide on the wall!
-        if(player.getScoreboardTags().contains("hasAdjacentBlock") && player.isSneaking()){
-            PotionEffect SLOW_FALLING = new PotionEffect(PotionEffectType.SLOW_FALLING, 5, 2);
-            player.addPotionEffect(SLOW_FALLING);
         }
 
         // if a player is jumping,
@@ -179,8 +177,10 @@ public final class MovementCraft extends JavaPlugin implements Listener {
             if(b.getType().isSolid()){
                 // and they are sneaking, and they aren't currently long jumping then:
                 if(player.isSneaking()
-                        && !player.getScoreboardTags().contains("isBackFlipping") && !player.getScoreboardTags().contains("isLongJumping")){
-                    // if our "movement" from the event doesn't move in the x or z axis,
+                && !player.getScoreboardTags().contains("isBackFlipping")
+                && !player.getScoreboardTags().contains("isLongJumping"))
+                {
+                    // if we are not moving
                     if(player.getScoreboardTags().contains("isMoving")){
                         // send them in their facing direction and put them into the LongJumping state
                         longJumpFor(player);
