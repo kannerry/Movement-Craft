@@ -1,0 +1,5 @@
+name: MovementCraft
+version: '${project.version}'
+main: kanner.movementcraft.MovementCraft
+api-version: 1.19
+description: epic
